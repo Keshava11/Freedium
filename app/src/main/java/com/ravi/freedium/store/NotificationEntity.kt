@@ -10,5 +10,6 @@ data class NotificationEntity(
     val packageName: String?,
     val title: String?,
     val text: String?,
+    val url: String?,
     val timestamp: Long = System.currentTimeMillis()
 )
