@@ -29,7 +29,12 @@ class FreediumNotificationListener : NotificationListenerService() {
         val extras = notification?.extras
         val title = extras?.getString("android.title")
         val text = extras?.getCharSequence("android.text")?.toString()
-        val url = extras?.getString("android.url")
+
+//        val extrasString = extras?.keySet()?.joinToString(separator = "\n") { key ->
+//            val value = extras.get(key)
+//            "$key: $value"
+//        } ?: "No extras"
+        val url = extras?.getString("android.url") // extrasString
 
         Log.d("FreediumNotificationListener", "Medium notification posted: $title - $text - $url")
 

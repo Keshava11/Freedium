@@ -55,6 +55,7 @@ fun NotificationItem(item: NotificationEntity, onItemClick: (String) -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = item.title ?: "No Title", style = MaterialTheme.typography.titleMedium)
             Text(text = item.text ?: "", style = MaterialTheme.typography.bodyMedium)
+            // Text(text = item.url ?: "", style = MaterialTheme.typography.bodyMedium)
             Text(
                 text = formatTimestamp(item.timestamp),
                 modifier = Modifier.fillMaxWidth(),
