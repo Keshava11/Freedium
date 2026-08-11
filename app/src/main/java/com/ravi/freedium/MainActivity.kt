@@ -4,23 +4,19 @@ import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.view.WindowManager
 import android.text.TextUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,57 +26,68 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.ravi.freedium.nav.NotificationNavHost
 import com.ravi.freedium.store.AppDatabase
 import com.ravi.freedium.ui.theme.FreediumTheme
+import com.ravi.freedium.utils.prefs.FreediumPrefs
 import com.ravi.freedium.viewmodel.NotificationViewModel
+import com.ravi.freedium.work.CleanupScheduler
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: NotificationViewModel by lazy {
-        val dao = AppDatabase.getDatabase(applicationContext).notificationDao()
-        NotificationViewModel(dao)
+        val database = AppDatabase.getDatabase(applicationContext)
+        NotificationViewModel(database.notificationDao(), database.cleanupLogDao())
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FreediumPrefs.init(applicationContext)
+        // Idempotent - KEEP policy means an existing schedule is left alone.
+        CleanupScheduler.schedule(applicationContext)
+        applySecureFlag()
         enableEdgeToEdge()
         setContent {
             FreediumTheme {
                 var isNotificationServiceEnabled by remember {
-                    mutableStateOf(
-                        isNotificationServiceEnabled()
-                    )
+                    mutableStateOf(isNotificationServiceEnabled())
                 }
 
-                // Check again when the activity resumes
-                LaunchedEffect(Unit) {
-                    // This is a simple way to refresh when returning from settings
-                    // In a real app, you might use Lifecycle observers
+                // Granting notification access happens in Settings, so the answer can only
+                // have changed while we were away - re-ask every time we come back.
+                LifecycleResumeEffect(Unit) {
+                    isNotificationServiceEnabled = isNotificationServiceEnabled()
+                    onPauseOrDispose { }
                 }
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(), topBar = {
-                        CenterAlignedTopAppBar(title = { Text("Freedium") })
-                    }) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        if (isNotificationServiceEnabled) {
-                            NotificationNavHost(viewModel = viewModel)
-                        } else {
-                            PermissionRequestScreen(onCheckAgain = {
-                                isNotificationServiceEnabled = isNotificationServiceEnabled()
-                            })
-                        }
-                    }
+                if (isNotificationServiceEnabled) {
+                    NotificationNavHost(viewModel = viewModel)
+                } else {
+                    PermissionRequestScreen(onCheckAgain = {
+                        isNotificationServiceEnabled = isNotificationServiceEnabled()
+                    })
                 }
             }
         }
     }
 
+    /**
+     * Re-applied on every resume so toggling the setting takes effect without a restart.
+     * FLAG_SECURE keeps this screen - which lists other apps' notification content - out of
+     * screenshots, screen recordings and the recents thumbnail.
+     */
+    private fun applySecureFlag() {
+        if (FreediumPrefs.secureScreen.value) {
+            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        // Force recomposition or update state if needed to check permission again
+        applySecureFlag()
     }
 
     private fun isNotificationServiceEnabled(): Boolean {

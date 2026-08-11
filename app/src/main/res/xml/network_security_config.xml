@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Everything this app touches is https. Denying cleartext outright means a
+    misconfiguration, a redirect to http, or an injected link cannot silently downgrade a
+    request onto the network in plain text.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- System CAs only: user-installed CAs are not trusted, so a device-level
+                 proxy certificate cannot transparently intercept this app's traffic. -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

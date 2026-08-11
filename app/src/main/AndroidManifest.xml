@@ -3,17 +3,37 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Needed to post our own "shadow" notification that points back into this app -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+        Package visibility (API 30+). Without this we cannot see the Medium app or
+        enumerate browsers when offering "open externally".
+    -->
+    <queries>
+        <package android:name="com.medium.reader" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <!-- Required on API 30+ for CustomTabsClient to discover a hosting browser -->
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Freedium">
-        
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -26,11 +46,72 @@
             </intent-filter>
         </activity>
 
+        <!--
+            The in-app reader. This is what makes Freedium a candidate handler for
+            Medium links instead of the Medium app.
+
+            autoVerify is deliberately left off: we do not own medium.com, so Digital
+            Asset Links verification would always fail. On Android 12+ that means the
+            system will NOT route web links here automatically - it sends unverified
+            web links to the default browser. To actually take over the link you must
+            opt in manually:
+                Settings > Apps > Freedium > Open by default > Add link > medium.com
+            and, because the Medium app IS domain-verified for medium.com (a verified
+            app wins over a user-selected one), also turn off link handling for the
+            Medium app there. The in-app "Link handling" card links straight to this
+            screen and shows the current per-host state.
+        -->
+        <activity
+            android:name=".ui.ReaderActivity"
+            android:exported="true"
+            android:label="@string/reader_title"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Freedium">
+
+            <!-- Medium web links -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="medium.com" />
+                <!-- covers publication subdomains and link.medium.com redirects -->
+                <data android:host="*.medium.com" />
+            </intent-filter>
+
+            <!-- Medium's own deep-link scheme, in case the notification uses it -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="medium" />
+            </intent-filter>
+
+            <!--
+                Makes Freedium a share target. This is the reliable manual fallback for
+                getting the link out of Medium: open the post, hit Share, pick Freedium.
+                Medium's share sheet hands us the canonical article URL in EXTRA_TEXT -
+                the same string the "copy link" option would have put on the clipboard.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".utils.notification.FreediumNotificationListener"
+            android:exported="true"
             android:label="@string/app_name"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="true">
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
