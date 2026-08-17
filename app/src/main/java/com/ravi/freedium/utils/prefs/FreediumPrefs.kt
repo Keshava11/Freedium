@@ -25,7 +25,7 @@ object FreediumPrefs {
 
     private val _shadowEnabled = MutableStateFlow(true)
     private val _cancelOriginalEnabled = MutableStateFlow(false)
-    private val _autoProbeEnabled = MutableStateFlow(false)
+    private val _autoProbeEnabled = MutableStateFlow(true)
     private val _captureAllPackages = MutableStateFlow(false)
     private val _secureScreen = MutableStateFlow(false)
 
@@ -37,7 +37,12 @@ object FreediumPrefs {
 
     /**
      * Probe the contentIntent automatically when a Medium notification arrives with no
-     * URL in it, instead of waiting to be asked. Off by default, and the listener only
+     * URL in it, instead of waiting to be asked.
+     *
+     * On by default, and it has to be: a PendingIntent is held in memory only, so it dies
+     * with the app process. Waiting for the user to open the app and press a button means
+     * that by then there is usually nothing left to probe. The only reliable moment to
+     * recover the link is the instant the notification arrives. The listener only
      * honours it where the resulting activity launch can be suppressed - otherwise every
      * incoming notification would yank the Medium app to the foreground.
      */
@@ -66,7 +71,7 @@ object FreediumPrefs {
         prefs = store
         _shadowEnabled.value = store.getBoolean(KEY_SHADOW, true)
         _cancelOriginalEnabled.value = store.getBoolean(KEY_CANCEL_ORIGINAL, false)
-        _autoProbeEnabled.value = store.getBoolean(KEY_AUTO_PROBE, false)
+        _autoProbeEnabled.value = store.getBoolean(KEY_AUTO_PROBE, true)
         _captureAllPackages.value = store.getBoolean(KEY_CAPTURE_ALL, false)
         _secureScreen.value = store.getBoolean(KEY_SECURE_SCREEN, false)
     }

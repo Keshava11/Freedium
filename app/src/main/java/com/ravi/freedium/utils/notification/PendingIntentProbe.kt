@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.LruCache
 import android.service.notification.StatusBarNotification
+import com.ravi.freedium.utils.links.MediumLinks
 
 /**
  * Keeps the PendingIntents of captured notifications so they can be probed later.
@@ -103,15 +104,36 @@ object PendingIntentProbe {
         }
 
         val onFinished = PendingIntent.OnFinished { _, intent, _, _, _ ->
-            val flattened = runCatching { intent?.toUri(0) }.getOrNull() ?: "$intent"
-            FreediumLog.d(TAG, "probe returned: $flattened")
+            // FIRST, before anything reads the extras: grab the raw parcel strings.
+            // Touching keySet() on a Bundle full of another app's Parcelable classes makes
+            // Android empty it, and the payload is gone for good.
+            val rawStrings = MediumLinks.rawStringsFrom(intent)
 
-            val extracted = UrlExtractor.extractFrom(intent)
+            val flattened = runCatching { intent?.toUri(0) }.getOrNull() ?: "$intent"
+            val diagnostic = buildString {
+                appendLine(flattened)
+                if (rawStrings.isNotEmpty()) {
+                    appendLine()
+                    appendLine("--- strings recovered from raw extras (${rawStrings.size}) ---")
+                    rawStrings.forEach { appendLine(it) }
+                }
+            }
+            FreediumLog.d(TAG, "probe returned: $diagnostic")
+
+            // Normal extraction first; fall back to the raw strings when the Bundle was
+            // emptied by a failed unparcel.
+            // Guarded: reading another app's extras can throw BadParcelableException
+            // outright on some versions instead of quietly emptying the Bundle. Either
+            // way the raw-string fallback still has to run.
+            val extracted = runCatching { UrlExtractor.extractFrom(intent) }.getOrNull()
+                ?: MediumLinks.resolveFromStrings(rawStrings, "rawExtras")
+                    ?.let { ExtractedUrl(it.url, it.source) }
+
             settle(
                 if (extracted != null) {
-                    ProbeResult.Found(extracted.url, extracted.source, flattened)
+                    ProbeResult.Found(extracted.url, extracted.source, diagnostic)
                 } else {
-                    ProbeResult.NoUrl(flattened)
+                    ProbeResult.NoUrl(diagnostic)
                 }
             )
         }

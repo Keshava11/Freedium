@@ -135,10 +135,12 @@ object UrlExtractor {
                 }
             }
 
-            val extras = notification?.extras
-            appendLine("--- extras (${extras?.keySet()?.size ?: 0}) ---")
-            extras?.keySet()?.sorted()?.forEach { key ->
-                appendLine("$key = ${valueOf(extras, key)?.take(500)}")
+            // Flattened recursively: a nested Bundle stringifies to
+            // "Bundle[mParcelledData.dataSize=248]" and would hide exactly what we need.
+            val flattened = MediumLinks.flatten(notification?.extras, "extras")
+            appendLine("--- extras, flattened (${flattened.size}) ---")
+            flattened.sortedBy { it.first }.forEach { (path, value) ->
+                appendLine("$path = ${value.take(500)}")
             }
 
             notification?.publicVersion?.extras?.let { public ->

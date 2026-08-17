@@ -176,6 +176,21 @@ fun InterceptionCard(modifier: Modifier = Modifier) {
         ) {
             Text("Notification interception", style = MaterialTheme.typography.titleMedium)
             Text(
+                text = "Android ${android.os.Build.VERSION.RELEASE} - automatic recovery " +
+                        if (PendingIntentProbe.canProbeSilently) {
+                            "runs the moment a Medium notification arrives."
+                        } else {
+                            "is UNAVAILABLE below Android 14. Tap a capture to recover it " +
+                                    "by hand instead; Medium may flash open for a moment."
+                        },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (PendingIntentProbe.canProbeSilently) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.error
+                }
+            )
+            Text(
                 text = "Medium's own notification cannot be re-pointed at this app - its " +
                         "tap target is a PendingIntent owned by Medium. Freedium mirrors it " +
                         "instead.",

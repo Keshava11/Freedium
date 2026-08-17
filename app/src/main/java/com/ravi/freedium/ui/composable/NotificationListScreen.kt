@@ -69,11 +69,59 @@ fun NotificationListScreen(
         openLink(url)
     }
 
-    // Probing fires someone else's PendingIntent, which can pull their app to the
-    // foreground - so it is always confirmed first rather than done on a stray tap.
     var probeCandidate by remember { mutableStateOf<NotificationEntity?>(null) }
-    var recovered by remember { mutableStateOf<Pair<String, String>?>(null) }
     var probeFailure by remember { mutableStateOf<String?>(null) }
+
+    // Recover the link and go straight to the Custom Tab. Runs from the foreground, where
+    // firing someone else's PendingIntent is permitted without restriction.
+    val recoverAndOpen: (NotificationEntity) -> Unit = { item ->
+        PendingIntentProbe.probeByKey(context, item.notificationKey) { result ->
+            when (result) {
+                is ProbeResult.Found -> {
+                    viewModel.setUrl(item.id, result.url, "probe/${result.source}")
+                    viewModel.setProbeIntent(item.id, result.intent)
+                    viewModel.setRead(item.id, true)
+                    openLink(result.url)
+                }
+
+                is ProbeResult.NoUrl -> {
+                    viewModel.setProbeIntent(item.id, result.intent)
+                    probeFailure = "Medium's Intent came back, but it carries no link and " +
+                            "no post id we could recognise.\n\n" + result.intent
+                }
+
+                is ProbeResult.NoIntent -> probeFailure = result.reason
+            }
+        }
+    }
+
+    /**
+     * Tapping a capture must always try to end up in a Custom Tab. Previously a row with
+     * no URL just opened the raw Intent dump, which is why tapping appeared to do nothing
+     * useful - it never attempted recovery at all.
+     */
+    val onRowTap: (NotificationEntity) -> Unit = { item ->
+        val ready = item.readyUrl
+        when {
+            ready != null -> {
+                viewModel.setRead(item.id, true)
+                openLink(ready)
+            }
+
+            !PendingIntentRegistry.has(item.notificationKey) -> {
+                probeFailure = "This capture has no link, and Freedium is no longer holding " +
+                        "its PendingIntent - those live in memory only and die with the app " +
+                        "process. Nothing can be recovered from it now. Trigger a fresh " +
+                        "Medium notification and tap that one."
+            }
+
+            // Silent probe available: just do it, no confirmation friction.
+            PendingIntentProbe.canProbeSilently -> recoverAndOpen(item)
+
+            // Otherwise Medium may flash open, so ask first.
+            else -> probeCandidate = item
+        }
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
@@ -105,9 +153,9 @@ fun NotificationListScreen(
         items(items = items, key = { it.id }) { item ->
             NotificationItem(
                 item = item,
-                onItemClick = { url -> openAndMarkRead(url, item.id) },
+                onOpen = { onRowTap(item) },
                 onInspect = { onNavigateToDetail(item.id) },
-                onRecoverUrl = { probeCandidate = item },
+                onRecoverUrl = { onRowTap(item) },
                 onToggleRead = { viewModel.setRead(item.id, !item.isRead) },
                 onToggleFavorite = { viewModel.setFavorite(item.id, !item.isFavorite) }
             )
@@ -117,44 +165,10 @@ fun NotificationListScreen(
     probeCandidate?.let { candidate ->
         ProbeConfirmationDialog(
             onDismiss = { probeCandidate = null },
-            onConfirm = { launchTarget ->
+            onConfirm = {
                 probeCandidate = null
-                PendingIntentProbe.probeByKey(
-                    context,
-                    candidate.notificationKey,
-                    launchTarget
-                ) { result ->
-                    when (result) {
-                        is ProbeResult.Found -> {
-                            viewModel.setUrl(candidate.id, result.url, "probe/${result.source}")
-                            viewModel.setProbeIntent(candidate.id, result.intent)
-                            recovered = result.url to result.source
-                        }
-
-                        is ProbeResult.NoUrl -> {
-                            // Keep the Intent even though we could not use it - it is the
-                            // evidence for which key holds the post id.
-                            viewModel.setProbeIntent(candidate.id, result.intent)
-                            probeFailure = "The probe worked and returned Medium's Intent, " +
-                                    "but no link or post id could be built from it.\n\n" +
-                                    "${result.intent}\n\n" +
-                                    "This is saved on the notification - open Inspect to " +
-                                    "copy it."
-                        }
-
-                        is ProbeResult.NoIntent -> probeFailure = result.reason
-                    }
-                }
+                recoverAndOpen(candidate)
             }
-        )
-    }
-
-    recovered?.let { (url, source) ->
-        UrlActionSheet(
-            url = url,
-            source = source,
-            onDismiss = { recovered = null },
-            onOpen = openLink
         )
     }
 
@@ -188,7 +202,7 @@ fun NotificationListScreen(
 }
 
 @Composable
-private fun ProbeConfirmationDialog(onDismiss: () -> Unit, onConfirm: (Boolean) -> Unit) {
+private fun ProbeConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Recover the article link") },
@@ -196,42 +210,31 @@ private fun ProbeConfirmationDialog(onDismiss: () -> Unit, onConfirm: (Boolean) 
             Text(
                 text = buildString {
                     append(
-                        "Both routes fire the notification's own PendingIntent and read the " +
-                                "Intent the system hands back.\n\n"
+                        "Freedium fires the notification's own PendingIntent and reads the " +
+                                "Intent the system hands back, which is where the article id " +
+                                "lives. The link then opens in a Chrome Custom Tab.\n\n"
                     )
-                    if (PendingIntentProbe.canProbeSilently) {
-                        append(
-                            "Recover here - Medium is stopped from opening. Fast, but only " +
-                                    "works if the Intent carries a link or a post id.\n\n"
-                        )
-                    }
                     append(
-                        "Open in Medium - lets Medium open the article normally. Use its " +
-                                "share button and pick Freedium, or copy the link and come " +
-                                "back; Freedium picks it up either way."
+                        if (PendingIntentProbe.canProbeSilently) {
+                            "Medium is stopped from opening."
+                        } else {
+                            "This Android version cannot suppress the launch, so Medium may " +
+                                    "flash open for a moment."
+                        }
                     )
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
         },
-        confirmButton = {
-            if (PendingIntentProbe.canProbeSilently) {
-                TextButton(onClick = { onConfirm(false) }) { Text("Recover here") }
-            }
-        },
-        dismissButton = {
-            Row {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                TextButton(onClick = { onConfirm(true) }) { Text("Open in Medium") }
-            }
-        }
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Recover") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
 @Composable
 fun NotificationItem(
     item: NotificationEntity,
-    onItemClick: (String) -> Unit,
+    onOpen: () -> Unit,
     onInspect: () -> Unit,
     onRecoverUrl: () -> Unit,
     onToggleRead: () -> Unit,
@@ -240,11 +243,9 @@ fun NotificationItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                // With a link we open the reader; without one the only useful thing to
-                // show is the raw dump, so you can go find where the link is hiding.
-                item.readyUrl?.let { onItemClick(it) } ?: onInspect()
-            },
+            // Always aims at a Custom Tab: opens the link if we have one, otherwise
+            // recovers it first. It never silently dead-ends in the raw dump.
+            .clickable(onClick = onOpen),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

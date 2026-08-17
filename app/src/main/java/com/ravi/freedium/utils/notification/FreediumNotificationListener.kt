@@ -85,9 +85,26 @@ class FreediumNotificationListener : NotificationListenerService() {
             // the contentIntent before deciding whether we can mirror this one.
             var url = extracted?.url
             if (url == null && shouldAutoProbe(sbn)) {
-                url = autoProbe(sbn)?.also { recovered ->
-                    dao.setUrl(id, recovered, "autoProbe")
-                    FreediumLog.d(TAG, "Auto-probe recovered $recovered")
+                when (val result = autoProbe(sbn)) {
+                    is ProbeResult.Found -> {
+                        url = result.url
+                        dao.setUrl(id, result.url, "autoProbe/${result.source}")
+                        dao.setProbeIntent(id, result.intent)
+                        FreediumLog.d(TAG, "Auto-probe recovered ${result.url}")
+                    }
+
+                    is ProbeResult.NoUrl -> {
+                        // Keep the Intent regardless. In a release build there is no
+                        // logging, so this row is the only evidence of what Medium sent
+                        // and the only way to teach MediumLinks the right key.
+                        dao.setProbeIntent(id, result.intent)
+                        FreediumLog.w(TAG, "Auto-probe got an Intent but no link: ${result.intent}")
+                    }
+
+                    is ProbeResult.NoIntent -> {
+                        dao.setProbeIntent(id, "no Intent recovered: ${result.reason}")
+                        FreediumLog.w(TAG, "Auto-probe failed: ${result.reason}")
+                    }
                 }
             }
 
@@ -117,12 +134,10 @@ class FreediumNotificationListener : NotificationListenerService() {
                 FreediumPrefs.autoProbeEnabled.value &&
                 PendingIntentProbe.canProbeSilently
 
-    private suspend fun autoProbe(sbn: StatusBarNotification): String? =
+    private suspend fun autoProbe(sbn: StatusBarNotification): ProbeResult =
         suspendCancellableCoroutine { continuation ->
             PendingIntentProbe.probeByKey(applicationContext, sbn.key) { result ->
-                val url = (result as? ProbeResult.Found)?.url
-                if (url == null) FreediumLog.w(TAG, "Auto-probe recovered nothing: $result")
-                if (continuation.isActive) continuation.resume(url)
+                if (continuation.isActive) continuation.resume(result)
             }
         }
 

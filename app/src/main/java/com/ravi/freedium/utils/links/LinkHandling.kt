@@ -87,17 +87,6 @@ object LinkHandling {
         }
     }
 
-    /** Opens the URL in one named app, e.g. handing an article back to Medium. */
-    fun openInPackage(context: Context, url: String, packageName: String): Boolean {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            .setPackage(packageName)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        return runCatching { context.startActivity(intent); true }.getOrElse {
-            Toast.makeText(context, "$packageName cannot open this link", Toast.LENGTH_SHORT).show()
-            false
-        }
-    }
-
     /** Standard share sheet for the URL. */
     fun share(context: Context, url: String) {
         val send = Intent(Intent.ACTION_SEND).apply {
