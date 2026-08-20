@@ -39,7 +39,6 @@ import com.ravi.freedium.store.NotificationEntity
 import com.ravi.freedium.utils.datetime.formatTimestamp
 import com.ravi.freedium.utils.links.CustomTabs
 import com.ravi.freedium.utils.links.OpenResult
-import com.ravi.freedium.utils.links.LinkResolver
 import com.ravi.freedium.utils.notification.PendingIntentProbe
 import com.ravi.freedium.utils.notification.PendingIntentRegistry
 import com.ravi.freedium.utils.notification.ProbeResult
@@ -292,12 +291,6 @@ fun NotificationItem(
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.primary
                 )
-                if (item.resolvedUrl == null && LinkResolver.needsResolving(item.url)) {
-                    Text(
-                        text = "not resolved yet - still a /p/<id> stub",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
             } else {
                 Text(
                     text = if (PendingIntentRegistry.has(item.notificationKey)) {

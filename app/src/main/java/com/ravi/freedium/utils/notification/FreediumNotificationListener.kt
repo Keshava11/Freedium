@@ -6,7 +6,6 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.ravi.freedium.store.AppDatabase
 import com.ravi.freedium.store.NotificationEntity
-import com.ravi.freedium.utils.links.LinkResolver
 import com.ravi.freedium.utils.prefs.FreediumPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -108,19 +107,7 @@ class FreediumNotificationListener : NotificationListenerService() {
                 }
             }
 
-            // Walk the redirects now so the row holds the real article link by the time
-            // the notification is tapped, rather than a /p/<postId> stub.
-            var readyUrl = url
-            if (LinkResolver.needsResolving(url)) {
-                val canonical = LinkResolver.resolve(url!!)
-                if (canonical != url) {
-                    dao.setResolvedUrl(id, canonical)
-                    readyUrl = canonical
-                    FreediumLog.d(TAG, "Resolved $url -> $canonical")
-                }
-            }
-
-            maybeIntercept(sbn, title, text, readyUrl)
+            maybeIntercept(sbn, title, text, url)
         }
     }
 

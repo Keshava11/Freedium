@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.ravi.freedium.store.CleanupLogDao
 import com.ravi.freedium.store.NotificationDao
 import com.ravi.freedium.store.NotificationEntity
-import com.ravi.freedium.utils.links.LinkResolver
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -41,30 +40,14 @@ class NotificationViewModel(
         viewModelScope.launch { dao.setFavorite(id, isFavorite) }
     }
 
-    /**
-     * Stores a recovered URL and, when it is a `/p/<postId>` stub, immediately walks the
-     * redirects so the row ends up holding the canonical article link.
-     */
+    /** Stores a URL recovered from a notification's PendingIntent. */
     fun setUrl(id: Long, url: String, source: String) {
-        viewModelScope.launch {
-            dao.setUrl(id, url, source)
-            resolveIfNeeded(id, url)
-        }
-    }
-
-    fun resolveLink(id: Long, url: String) {
-        viewModelScope.launch { resolveIfNeeded(id, url, force = true) }
+        viewModelScope.launch { dao.setUrl(id, url, source) }
     }
 
     /** Stores a canonical URL discovered for this notification. */
     fun setResolvedUrl(id: Long, resolvedUrl: String) {
         viewModelScope.launch { dao.setResolvedUrl(id, resolvedUrl) }
-    }
-
-    private suspend fun resolveIfNeeded(id: Long, url: String, force: Boolean = false) {
-        if (!force && !LinkResolver.needsResolving(url)) return
-        val canonical = LinkResolver.resolve(url)
-        if (canonical != url) dao.setResolvedUrl(id, canonical)
     }
 
     fun setProbeIntent(id: Long, intent: String) {

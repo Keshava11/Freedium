@@ -1,5 +1,6 @@
 package com.ravi.freedium.utils.links
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -49,6 +50,7 @@ object CustomTabs {
         val customTabsIntent = CustomTabsIntent.Builder()
             .setShowTitle(true)
             .setUrlBarHidingEnabled(true)
+            .addMenuItem(CustomTabActionReceiver.RELOAD_LABEL, reloadPendingIntent(context))
             .build()
 
         customTabsIntent.intent.setPackage(provider)
@@ -72,6 +74,25 @@ object CustomTabs {
 
         is OpenResult.Failed ->
             "The Custom Tab could not be launched: ${result.reason}"
+    }
+
+    /**
+     * The PendingIntent behind our overflow menu item.
+     *
+     * FLAG_MUTABLE is required, not optional: Chrome fills in the current page URL as the
+     * Intent's data before sending it, and an immutable PendingIntent would arrive empty,
+     * leaving the handler with nothing to reload.
+     */
+    private fun reloadPendingIntent(context: Context): PendingIntent {
+        val intent = Intent(context, CustomTabActionReceiver::class.java)
+            .setAction(CustomTabActionReceiver.ACTION_RELOAD)
+
+        return PendingIntent.getBroadcast(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
     }
 
     private fun browserPackages(context: Context): List<String> {

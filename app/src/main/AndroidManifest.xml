@@ -107,6 +107,15 @@
             </intent-filter>
         </activity>
 
+        <!--
+            Target of the "Reload page" item Freedium adds to the Custom Tab overflow menu.
+            Not exported: Chrome triggers it through a PendingIntent, which carries our own
+            identity, so nothing else needs the ability to broadcast to it.
+        -->
+        <receiver
+            android:name=".utils.links.CustomTabActionReceiver"
+            android:exported="false" />
+
         <service
             android:name=".utils.notification.FreediumNotificationListener"
             android:exported="true"
