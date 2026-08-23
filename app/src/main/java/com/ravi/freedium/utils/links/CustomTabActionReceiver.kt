@@ -25,7 +25,7 @@ class CustomTabActionReceiver : BroadcastReceiver() {
         const val ACTION_RELOAD = "com.ravi.freedium.action.RELOAD_TAB"
 
         /** Menu label, kept here so the builder and the handler cannot drift apart. */
-        const val RELOAD_LABEL = "Reload page"
+        const val RELOAD_LABEL = "Free It!"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -48,9 +48,11 @@ class CustomTabActionReceiver : BroadcastReceiver() {
         // Android gates toasts on areNotificationsEnabled() and drops them silently with
         // only a log line - "Suppressing toast from package ... by user request" - which
         // is exactly what happens on a fresh install before POST_NOTIFICATIONS is granted.
-        Toast.makeText(context, "Page was reloaded", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Page was freed", Toast.LENGTH_SHORT).show()
 
-        val opened = CustomTabs.open(context, url)
+        // updating the url and freeing it
+        val freeUrl = "https://freedium-mirror.cfd/$url"
+        val opened = CustomTabs.open(context, freeUrl)
         if (opened != OpenResult.Opened) {
             Toast.makeText(context, CustomTabs.describe(opened), Toast.LENGTH_LONG).show()
         }
