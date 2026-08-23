@@ -47,3 +47,8 @@ google-services.json
 
 # Release signing material - never commit (*.jks / *.keystore already covered above)
 keystore.properties
+
+# Android Studio "Generate Signed Bundle / APK" wizard output.
+# Gradle writes to app/build/ (already covered by app/.gitignore), but the IDE wizard
+# writes here instead, so it needs its own rule.
+app/release/
