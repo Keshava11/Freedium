@@ -1,57 +1,115 @@
 package com.ravi.freedium.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val PeacockLight = lightColorScheme(
+    primary = PeacockTeal40,
+    onPrimary = PeacockBone,
+    primaryContainer = PeacockTeal90,
+    onPrimaryContainer = PeacockTeal10,
+
+    secondary = PlumeBlue40,
+    onSecondary = PeacockBone,
+    secondaryContainer = PlumeBlue90,
+    onSecondaryContainer = PlumeBlue10,
+
+    tertiary = TailGold40,
+    onTertiary = PeacockBone,
+    tertiaryContainer = TailGold90,
+    onTertiaryContainer = TailGold10,
+
+    background = PeacockBone,
+    onBackground = PeacockOnSurfaceLight,
+    surface = PeacockBone,
+    onSurface = PeacockOnSurfaceLight,
+    surfaceVariant = PeacockSurfaceLight,
+    onSurfaceVariant = PeacockOnSurfaceVariantLight,
+    // The full surface ramp has to be spelled out. Any token left undefined falls back
+    // to M3's baseline purple, which is what turned every Card lavender.
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF1F8F8),
+    surfaceContainer = Color(0xFFEAF3F3),
+    surfaceContainerHigh = Color(0xFFE1EDEE),
+    surfaceContainerHighest = Color(0xFFD7E7E8),
+    surfaceBright = PeacockBone,
+    surfaceDim = Color(0xFFD5E0E0),
+    inverseSurface = Color(0xFF2B3232),
+    inverseOnSurface = Color(0xFFEDF2F2),
+    inversePrimary = PeacockTeal80,
+    scrim = Color(0xFF000000),
+
+    outline = PeacockOutline,
+    outlineVariant = Color(0xFFC8D3D3),
+
+    error = ErrorRed40,
+    onError = PeacockBone,
+    errorContainer = ErrorRed90,
+    onErrorContainer = ErrorRed10
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+private val PeacockDark = darkColorScheme(
+    primary = PeacockTeal80,
+    onPrimary = PeacockTeal20,
+    primaryContainer = PeacockTeal30,
+    onPrimaryContainer = PeacockTeal90,
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    secondary = PlumeBlue80,
+    onSecondary = PlumeBlue20,
+    secondaryContainer = PlumeBlue30,
+    onSecondaryContainer = PlumeBlue90,
+
+    tertiary = TailGold80,
+    onTertiary = TailGold20,
+    tertiaryContainer = TailGold30,
+    onTertiaryContainer = TailGold90,
+
+    background = PeacockInk,
+    onBackground = PeacockOnSurfaceDark,
+    surface = PeacockInk,
+    onSurface = PeacockOnSurfaceDark,
+    surfaceVariant = PeacockSurfaceDark,
+    onSurfaceVariant = PeacockOnSurfaceVariantDark,
+    surfaceContainerLowest = Color(0xFF060E0F),
+    surfaceContainerLow = Color(0xFF0F1B1D),
+    surfaceContainer = PeacockSurfaceDark,
+    surfaceContainerHigh = PeacockSurfaceDarkHigh,
+    surfaceContainerHighest = Color(0xFF243133),
+    surfaceBright = Color(0xFF33403F),
+    surfaceDim = PeacockInk,
+    inverseSurface = PeacockOnSurfaceDark,
+    inverseOnSurface = Color(0xFF1B2223),
+    inversePrimary = PeacockTeal40,
+    scrim = Color(0xFF000000),
+
+    outline = PeacockOutlineDark,
+    outlineVariant = Color(0xFF2A3739),
+
+    error = ErrorRed80,
+    onError = ErrorRed10,
+    errorContainer = Color(0xFF8C1D18),
+    onErrorContainer = ErrorRed90
 )
 
+/**
+ * Material You dynamic colour is deliberately **not** used.
+ *
+ * It used to be on, which meant the whole app took its colours from the device wallpaper
+ * and the palette defined here was never seen on Android 12+. Since the point of choosing
+ * a peacock palette is that the app looks like itself on every device, wallpaper-derived
+ * colour is exactly the thing to opt out of.
+ */
 @Composable
 fun FreediumTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) PeacockDark else PeacockLight,
         typography = Typography,
         content = content
     )

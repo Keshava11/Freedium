@@ -47,6 +47,9 @@ interface NotificationDao {
     @Query("SELECT COUNT(*) FROM notifications WHERE isFavorite = 0 AND timestamp < :cutoff")
     suspend fun countExpired(cutoff: Long): Int
 
+    @Query("DELETE FROM notifications WHERE id = :id")
+    suspend fun delete(id: Long)
+
     @Query("DELETE FROM notifications")
     suspend fun clearAll()
 }

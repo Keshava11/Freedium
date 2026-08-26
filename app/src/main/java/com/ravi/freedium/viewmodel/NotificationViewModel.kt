@@ -54,6 +54,10 @@ class NotificationViewModel(
         viewModelScope.launch { dao.setProbeIntent(id, intent) }
     }
 
+    fun delete(id: Long) {
+        viewModelScope.launch { dao.delete(id) }
+    }
+
     fun clearAll() {
         viewModelScope.launch { dao.clearAll() }
     }
