@@ -263,7 +263,14 @@ private fun FilterRow(
                     )
                 },
                 trailingIcon = if (count > 0) {
-                    { Badge { Text("$count") } }
+                    {
+                        // Explicitly coloured: Badge defaults to the error role, which
+                        // would paint a plain count as if it were a problem.
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        ) { Text("$count") }
+                    }
                 } else {
                     null
                 },

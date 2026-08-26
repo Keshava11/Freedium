@@ -46,10 +46,11 @@ private val PeacockLight = lightColorScheme(
     outline = PeacockOutline,
     outlineVariant = Color(0xFFC8D3D3),
 
-    error = ErrorRed40,
+    // "error" is Material's role name; here it carries attention, not danger.
+    error = PlumeViolet40,
     onError = PeacockBone,
-    errorContainer = ErrorRed90,
-    onErrorContainer = ErrorRed10
+    errorContainer = PlumeViolet90,
+    onErrorContainer = PlumeViolet10
 )
 
 private val PeacockDark = darkColorScheme(
@@ -89,10 +90,10 @@ private val PeacockDark = darkColorScheme(
     outline = PeacockOutlineDark,
     outlineVariant = Color(0xFF2A3739),
 
-    error = ErrorRed80,
-    onError = ErrorRed10,
-    errorContainer = Color(0xFF8C1D18),
-    onErrorContainer = ErrorRed90
+    error = PlumeViolet80,
+    onError = PlumeViolet20,
+    errorContainer = PlumeViolet30,
+    onErrorContainer = PlumeViolet90
 )
 
 /**

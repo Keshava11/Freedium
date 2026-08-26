@@ -49,8 +49,14 @@ val PeacockOnSurfaceDark = Color(0xFFDDE4E4)
 val PeacockOnSurfaceVariantLight = Color(0xFF4B5556)
 val PeacockOnSurfaceVariantDark = Color(0xFFBEC8C9)
 
-// --- Status colours ------------------------------------------------------------
-val ErrorRed40 = Color(0xFFB3261E)
-val ErrorRed80 = Color(0xFFF2B8B5)
-val ErrorRed10 = Color(0xFF410E0B)
-val ErrorRed90 = Color(0xFFF9DEDC)
+// --- Attention: the deep violet iridescence beside the teal in a plume ---------
+//
+// Red is deliberately absent from this palette. It fights the teal and reads as an alarm
+// in an app where "needs attention" only ever means a link could not be recovered. The
+// violet is dark enough to carry the same weight while still belonging to the bird.
+val PlumeViolet10 = Color(0xFF230A38)
+val PlumeViolet20 = Color(0xFF3A2050)
+val PlumeViolet30 = Color(0xFF4E3266)
+val PlumeViolet40 = Color(0xFF5C3A75)
+val PlumeViolet80 = Color(0xFFD6B9E8)
+val PlumeViolet90 = Color(0xFFEBDDF4)
